@@ -1,8 +1,30 @@
 import lldb
+import optparse
+import shlex
 
 def breakAfterRegex(debugger, command, result, internal_dict):
+    
+    command = command.replace('\\', '\\\\')
+    command_args = shlex.split(command, posix=False)
+    parser = generateOptionParser()
+
+    try:
+        (options, args) = parser.parse_args(command_args)
+    except:
+        result.SetError(parser.usage)
+        return
+
     target = debugger.GetSelectedTarget()
-    breakpoint = target.BreakpointCreateByRegex(command)
+    clean_command = shlex.split(args[0])[0]
+
+
+    print(clean_command)
+
+    if options.non_regex:
+        breakpoint = target.BreakpointCreateByName(clean_command)
+    else:
+        breakpoint = target.BreakpointCreateByRegex(clean_command)
+
 
     if not breakpoint.IsValid() or breakpoint.num_locations == 0:
         result.AppendWarning("breakpoint is not valid or has not found any hits.")
@@ -17,6 +39,7 @@ def __lldb_init_module(debugger, internal_dict):
 def breakpointHandler(frame, bp_loc, dict):
     '''function called when the regular expression breakpoint gets triggered'''
 
+    #breakpoint()
     thread = frame.GetThread()
     process = thread.GetProcess()
     debugger = process.GetTarget().GetDebugger()
@@ -28,11 +51,13 @@ def breakpointHandler(frame, bp_loc, dict):
     thread.StepOut()
 
     output = evaluateReturnedObject(debugger, thread, function_name)
+    #breakpoint()
 
     if output is not None:
         print(output)
+    
      
-    # print("stopped in: {}".format(function_name))
+    print("stopped in: {}".format(function_name))
     return True
 
 def evaluateReturnedObject(debugger, thread, function_name):
@@ -59,3 +84,15 @@ def evaluateReturnedObject(debugger, thread, function_name):
     else:
         return None
 
+
+
+def generateOptionParser():
+    '''Generates the Parsers to parse the command input
+    '''
+    usage = "usage: %prog [options] breakpoint_query \n Use 'bar -h' for option desc"
+
+    parser = optparse.OptionParser(usage=usage, prog=usage)
+
+    parser.add_option("-n", "--non_regex", action="store_true", default=False, dest="non_regex", help="Use a non-regex breakpoint instead")
+
+    return parser
