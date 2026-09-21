@@ -21,9 +21,9 @@ def breakAfterRegex(debugger, command, result, internal_dict):
     print(clean_command)
 
     if options.non_regex:
-        breakpoint = target.BreakpointCreateByName(clean_command)
+        breakpoint = target.BreakpointCreateByName(clean_command, options.module)
     else:
-        breakpoint = target.BreakpointCreateByRegex(clean_command)
+        breakpoint = target.BreakpointCreateByRegex(clean_command, options.module)
 
 
     if not breakpoint.IsValid() or breakpoint.num_locations == 0:
@@ -95,4 +95,9 @@ def generateOptionParser():
 
     parser.add_option("-n", "--non_regex", action="store_true", default=False, dest="non_regex", help="Use a non-regex breakpoint instead")
 
+    parser.add_option("-m", "--module",
+                      action="store",
+                      default=None,
+                      dest="module",
+                      help="Filter a breakpoint by only searching within a specific Module")
     return parser
